@@ -10,8 +10,8 @@ import scalaj.http.HttpResponse
 
 class SonatypePublisher(uri: String,
                         snapshotUri: String,
-                        credentials: String,
-                        gpgPassphrase: String,
+                        credentials: Option[String],
+                        gpgPassphrase: Option[String],
                         log: Logger) {
 
   private val api = new SonatypeHttpApi(uri, credentials)
@@ -29,9 +29,12 @@ class SonatypePublisher(uri: String,
       ).mkString("/")
       val fileMapping = fileMapping0.map{ case (file, name) => (file, publishPath+"/"+name) }
 
-      val signedArtifacts = fileMapping ++ fileMapping.map {
-        case (file, name) => poorMansSign(file, gpgPassphrase) -> s"$name.asc"
-      }
+      val artifactSignatures = gpgPassphrase.map(passphrase =>
+        fileMapping.map {
+          case (file, name) => poorMansSign(file, passphrase) -> s"$name.asc"
+        }).getOrElse(Seq.empty)
+
+      val signedArtifacts = fileMapping ++ artifactSignatures
 
       artifact -> signedArtifacts.flatMap {
         case (file, name) =>
@@ -60,7 +63,7 @@ class SonatypePublisher(uri: String,
 
     val publishResults = payloads.map {
       case (fileName, data) =>
-        log.info(s"Uploading $fileName")
+        log.info(s"Uploading $fileName to $snapshotUri/$fileName")
         val resp = api.upload(s"$snapshotUri/$fileName", data)
         resp
     }

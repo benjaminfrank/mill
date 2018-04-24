@@ -16,18 +16,20 @@ object PatientHttp
       )
     )
 
-class SonatypeHttpApi(uri: String, credentials: String) {
+class SonatypeHttpApi(uri: String, credentials: Option[String]) {
 
-  private val base64Creds = base64(credentials)
+  private val base64Creds = credentials.map(base64)
 
-  private val commonHeaders = Seq(
-    "Authorization" -> s"Basic $base64Creds",
+  private val commonHeaders = base64Creds.map(base64Creds => "Authorization" -> s"Basic $base64Creds",
+  ).toSeq ++ Seq(
     "Accept" -> "application/json",
     "Content-Type" -> "application/json"
   )
 
+  println(commonHeaders)
   // https://oss.sonatype.org/nexus-staging-plugin/default/docs/path__staging_profiles.html
   def getStagingProfileUri(groupId: String): String = {
+    println(s"$uri/staging/profiles")
     val response = withRetry(
       PatientHttp(s"$uri/staging/profiles").headers(commonHeaders))
         .throwError
@@ -105,13 +107,15 @@ class SonatypeHttpApi(uri: String, credentials: String) {
   private val uploadTimeout = 5.minutes.toMillis.toInt
 
   def upload(uri: String, data: Array[Byte]): HttpResponse[String] = {
+    val headers =
+      Seq("Content-Type" -> "application/binary") ++
+        credentials.map(base64Creds => "Authorization" -> s"Basic ${base64Creds}").toSeq
+
+    println(s"headers: $headers")
     PatientHttp(uri)
       .option(HttpOptions.readTimeout(uploadTimeout))
       .method("PUT")
-      .headers(
-        "Content-Type" -> "application/binary",
-        "Authorization" -> s"Basic ${base64Creds}"
-      )
+      .headers(headers)
       .put(data)
       .asString
   }

@@ -13,6 +13,7 @@ case class Discover[T](value: Map[Class[_], Seq[(Int, EntryPoint[_])]])
 object Discover {
   def apply[T]: Discover[T] = macro applyImpl[T]
 
+
   def applyImpl[T: c.WeakTypeTag](c: blackbox.Context): c.Expr[Discover[T]] = {
     import c.universe._
     import compat._

@@ -72,15 +72,15 @@ trait PublishModule extends JavaModule { outer =>
     )
   }
 
-  def publish(sonatypeCreds: String,
-              gpgPassphrase: String,
-              release: Boolean): define.Command[Unit] = T.command {
+  def publish(sonatypeCreds: String = null,
+              gpgPassphrase: String = null,
+              release: Boolean = false): define.Command[Unit] = T.command {
     val PublishModule.PublishData(artifactInfo, artifacts) = publishArtifacts()
     new SonatypePublisher(
       sonatypeUri,
       sonatypeSnapshotUri,
-      sonatypeCreds,
-      gpgPassphrase,
+      Option(sonatypeCreds),
+      Option(gpgPassphrase),
       T.ctx().log
     ).publish(artifacts.map{case (a, b) => (a.path, b)}, artifactInfo, release)
   }
@@ -93,9 +93,9 @@ object PublishModule extends ExternalModule{
     implicit def jsonify: upickle.default.ReadWriter[PublishData] = upickle.default.macroRW
   }
 
-  def publishAll(sonatypeCreds: String,
-                 gpgPassphrase: String,
-                 publishArtifacts: mill.main.Tasks[PublishModule.PublishData],
+  def publishAll(publishArtifacts: mill.main.Tasks[PublishModule.PublishData],
+                 sonatypeCreds: String = null,
+                 gpgPassphrase: String = null,
                  release: Boolean = false,
                  sonatypeUri: String = "https://oss.sonatype.org/service/local",
                  sonatypeSnapshotUri: String = "https://oss.sonatype.org/content/repositories/snapshots") = T.command{
@@ -106,8 +106,8 @@ object PublishModule extends ExternalModule{
     new SonatypePublisher(
       sonatypeUri,
       sonatypeSnapshotUri,
-      sonatypeCreds,
-      gpgPassphrase,
+      Option(sonatypeCreds),
+      Option(gpgPassphrase),
       T.ctx().log
     ).publishAll(
       release,
