@@ -2,6 +2,8 @@ import $file.ci.shared
 import $file.ci.upload
 import java.nio.file.attribute.PosixFilePermission
 
+//import $ivy.`com.lihaoyi::mill-contrib-packaging:0.2.7-3-fc86e6-DIRTY438d0bd2`
+//import mill.contrib._
 import ammonite.ops._
 import coursier.maven.MavenRepository
 import mill._
@@ -248,6 +250,18 @@ object contrib extends MillModule {
       scalalib.backgroundwrapper.testArgs()
     }
    }
+
+  object packaging extends MillModule {
+
+    def moduleDeps = Seq(
+      scalalib
+    )
+
+//    object packager extends Packaging {
+//
+//      def scalaVersion = "2.12.6"
+//    }
+  }
 
 }
 
