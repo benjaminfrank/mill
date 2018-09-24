@@ -1,4 +1,4 @@
-package mill.contrib
+package mill.contrib.packaging
 
 import java.io.IOException
 import java.nio.file.{Files, Paths}
@@ -11,8 +11,6 @@ import mill.scalalib._
 import mill.define.Task
 import ammonite.ops._
 
-import scala.io.Source
-
 trait Packaging extends JavaModule{
 
   // copy dependent project jars
@@ -20,21 +18,13 @@ trait Packaging extends JavaModule{
     Task
       .traverse(moduleDeps)(m =>
         T.task {
-          (s"${m.artifactName()}.jar", m.jar())
+          (s"${m.artifactName()}.jar", PathRef(m.jar().path))
         })()
-      .map(aj => {
-        // properly name artifacts before copying
-        val fileToWrite = aj._2.path / up / aj._1
-        mv(aj._2.path, fileToWrite)
-        PathRef(fileToWrite, true)
-      })
   }
 
   //copy project jar
   def projectVar = T {
-    val dst = T.ctx().dest / artifactName().mkString.concat(".jar")
-    cp.over(jar().path, dst)
-    PathRef(dst)
+    (s"${artifactName()}.jar", PathRef(jar().path))
   }
 
   // copy dependency jars
@@ -42,20 +32,20 @@ trait Packaging extends JavaModule{
     runClasspath()
       .map(_.path)
       .filter(path => exists(path) && path.name.endsWith(".jar"))
-      .map(PathRef(_))
+      .map(path => (path.segments.last, PathRef(path)))
   }
+
 
 
   def prepareScript = T {
 
-    val jars: Seq[PathRef] = projectJars() ++ dependencyJars() :+ projectVar()
+    val jars: Seq[String] = (projectJars() ++ dependencyJars() :+ projectVar()).map(_._1)
     val mainClass = finalMainClass()
-
-
-    val moduleDepNames = jars.map(jar => s"$$lib_dir/${jar.path.segments.last}").mkString(":")
+    val moduleDepNames = jars.map(jar => s"$$lib_dir/${jar}").mkString(":")
     val appCP = s"""declare -r app_classpath="$moduleDepNames""""
-    val script: String = Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("template-script")).mkString
-    val newScript = script.replace("${{app_mainclass}}", mainClass).replace("${{template_declares}}", appCP).replace("${{available_main_classes}}", mainClass)
+
+    //insert into template script
+    val newScript = TemplateScripts.bash(mainClass, appCP, mainClass)
     write(T.ctx().dest / "template-script", "")
     write.over(T.ctx().dest / "template-script", newScript)
 
@@ -80,7 +70,7 @@ trait Packaging extends JavaModule{
 
     //copy jars in lib folder
     (projectJars() ++ dependencyJars() :+ projectVar()).foreach(
-      jar => cp.over(jar.path, libDir / jar.path.segments.last)
+      jar => cp.over(jar._2.path, libDir / jar._1)
     )
 
     //load and edit template-script
