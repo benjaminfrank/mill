@@ -54,7 +54,7 @@ trait Packaging extends JavaModule {
   }
 
   def applicationIni = T {
-    write(T.ctx().dest / "conf" / "application.ini", "")
+    write(T.ctx().dest / "application.ini", "")
     forkArgs().foreach( option =>
       write.append(T.ctx().dest / "application.ini", option)
     )
