@@ -344,6 +344,7 @@ object TemplateScripts {
       |declare -r lib_dir="$$(realpath "$${app_home}/../lib")"
       |declare -a app_mainclass=($appMainClass)
       |
+      |declare -r script_conf_file=“$${app_home}/../conf/application.ini”
       |$templateDeclares
       |# java_cmd is overrode in process_args when -java-home is used
       |declare java_cmd=$$(get_java_cmd)

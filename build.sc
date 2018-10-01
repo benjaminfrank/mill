@@ -255,6 +255,11 @@ object contrib extends MillModule {
     def moduleDeps = Seq(
       scalalib
     )
+    def testArgs = T{
+      Seq("-Djna.nosys=true") ++
+        scalalib.worker.testArgs() ++
+        scalalib.backgroundwrapper.testArgs()
+    }
   }
 
 }

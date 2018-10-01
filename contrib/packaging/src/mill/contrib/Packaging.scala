@@ -11,7 +11,7 @@ import mill.scalalib._
 import mill.define.Task
 import ammonite.ops._
 
-trait Packaging extends JavaModule{
+trait Packaging extends JavaModule {
 
   // copy dependent project jars
   def projectJars = T {
@@ -26,6 +26,7 @@ trait Packaging extends JavaModule{
   def projectVar = T {
     (s"${artifactName()}.jar", PathRef(jar().path))
   }
+
 
   // copy dependency jars
   def dependencyJars = T {
@@ -53,8 +54,8 @@ trait Packaging extends JavaModule{
   }
 
   def applicationIni = T {
-    write(T.ctx().dest / "application.ini", "")
-    javacOptions().foreach(option =>
+    write(T.ctx().dest / "conf" / "application.ini", "")
+    forkArgs().foreach( option =>
       write.append(T.ctx().dest / "application.ini", option)
     )
     PathRef(T.ctx().dest / "application.ini")
@@ -64,9 +65,11 @@ trait Packaging extends JavaModule{
     implicit val currentDir = T.ctx().dest
     val libDir =  T.ctx().dest / 'lib
     val bin =  T.ctx().dest / 'bin
+    val conf = T.ctx().dest / 'conf
 
     mkdir(libDir)
     mkdir(bin)
+    mkdir(conf)
 
     //copy jars in lib folder
     (projectJars() ++ dependencyJars() :+ projectVar()).foreach(
@@ -77,10 +80,10 @@ trait Packaging extends JavaModule{
     val scriptDst = prepareScript()
 
     //copy script
-    cp.into(scriptDst, T.ctx().dest / 'bin)
+    cp.into(scriptDst, bin)
 
     // copy application.ini
-    cp.into(applicationIni().path, T.ctx().dest)
+    cp.into(applicationIni().path, conf)
 
     PathRef(T.ctx().dest)
   }
